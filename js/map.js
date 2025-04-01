@@ -1,17 +1,9 @@
 var map;
 var geoJsonLayer;
-// let top5 = [];
-// let bottom5 = [];
-
-// map.addLayer(top5Layer);
-// map.addLayer(bottom5Layer);
-// map.removeLayer(top5Layer);
-// map.removeLayer(bottom5Layer);
 
 document.addEventListener("DOMContentLoaded", function () {
-    // Initialize the map only once
-    if (!map) {
-        map = L.map('map').setView([43.6659, -79.4148], 13);
+    if (!window.map) {
+        window.map = L.map('map').setView([43.6659, -79.4148], 13);
 
         // Add tile layer
         L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}{r}.png?api_key=22685591-9232-45c7-a495-cfdf0e81ab86', {
@@ -19,82 +11,68 @@ document.addEventListener("DOMContentLoaded", function () {
             attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>',
         }).addTo(map);
 
-        // Ensure the map resizes correctly
-        setTimeout(() => {
-            map.invalidateSize();
-        }, 500);
+        // Create custom panes
+        map.createPane('polygonPane');
+        map.getPane('polygonPane').style.zIndex = 200;
+
+        map.createPane('pointPane');
+        map.getPane('pointPane').style.zIndex = 400;
     }
 
-    // Fetch neighbourhood GeoJSON and add it to the map
-    fetch('data/muncipalities_pt.geojson')
-    .then(response => response.json())
-    .then(data => {
-        console.log(data);
+    // Fetch and add municipality polygons (set to the polygonPane)
+    let municipalityLayer;
 
-        if (data && data.type === 'FeatureCollection') {
-            const sorted = data.features.sort((a, b) => a.properties.rank - b.properties.rank);
-
-            top5 = sorted.slice(0, 5);
-            bottom5 = sorted.slice(-5);
-
-            geoJsonLayer = L.geoJSON(data, {
-                pointToLayer: function (feature, latlng) {
-                    return L.circleMarker(latlng, {
-                        radius: 8, // Adjust size as needed
-                        fillColor: getColor(feature.properties.rank),
+    fetch('data/muncipalities_poly.geojson')
+        .then(response => response.json())
+        .then(data => {
+            municipalityLayer = L.geoJSON(data, {
+                pane: 'polygonPane',
+                style: function (feature) {
+                    return {
+                        fillColor: '#3388ff',
                         color: 'white',
-                        weight: 1.5,
+                        weight: 1,
                         opacity: 1,
-                        fillOpacity: 0.9
-                    });
+                        fillOpacity: 0.5
+                    };
+                }
+            }).addTo(map);
+        });
+
+    // Fetch and add municipalities point layer (set to the pointPane)
+    fetch('data/muncipalities_pt.geojson')
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.type === 'FeatureCollection') {
+                geoJsonLayer = L.geoJSON(data, {
+                    pane: 'pointPane', // Assign to point pane
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            radius: 8,
+                            fillColor: getColor(feature.properties.rank),
+                            color: 'white',
+                            weight: 1.5,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        });
                     },
                     onEachFeature: function (feature, layer) {
                         layer.bindTooltip(feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ')', {
                             permanent: false,
                             direction: "top",
-                            className: "neighbourhood-tooltip"
+                            className: "municipality-tooltip"
                         });
 
                         let popupContent =
                         `<img src="images/maple-leaf.svg" alt="Maple Leaf" style="display: block; margin: 0 auto; width: 1.5rem; height: 1.5rem;">
-                        <strong>${feature.properties.AREA_NAME}</strong><br>
-                        Rank: ${feature.properties.rank} <br>
-                        Tree Canopy: ${feature.properties["pct_canopy"]}%`;
+                        <strong>${feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ' out of 20)'}</strong><br>
+                        Green Space: ${feature.properties["gs_per_capita"]} m²/person`;
 
                         layer.bindPopup(popupContent);
-
-                        layer.on({
-                            mouseover: function (e) {
-                                e.target.setStyle({
-                                    fillColor: '#FEFFBE',
-                                    fillOpacity: 0.45,
-                                    dashArray: '5, 5'
-                                });
-                            },
-                            mouseout: function (e) {
-                                // Ensure geoJsonLayer is defined before calling resetStyle
-                                if (typeof geoJsonLayer !== 'undefined') {
-                                    geoJsonLayer.resetStyle(e.target);
-                                }
-                            },
-
-                            click: function(e) {
-                                e.target.setStyle({
-                                    weight: 0,
-                                    color: "transparent",
-                                    stroke: false
-                                });
-
-                                // Prevent Leaflet from adding focus styles
-                                setTimeout(() => {
-                                    document.activeElement.blur();
-                                }, 0);
-                            }
-                        });
                     }
                 }).addTo(map);
 
-                // Add event listeners for checkboxes inside the DOMContentLoaded listener
+                // Add event listeners for checkboxes inside DOMContentLoaded listener
                 document.getElementById("top5").addEventListener("change", function() {
                     if (this.checked) {
                         addTop5Markers();
@@ -110,13 +88,34 @@ document.addEventListener("DOMContentLoaded", function () {
                         removeBottom5Markers();
                     }
                 });
+
                 map.fitBounds(geoJsonLayer.getBounds());
             } else {
                 console.error('Invalid GeoJSON data');
             }
         })
         .catch(error => console.error('Error loading GeoJSON', error));
+
+
+    // Function to toggle layer based on zoom
+    function updateLayerVisibility() {
+        const zoomLevel = map.getZoom();
+        if (zoomLevel >= 8) {
+            if (municipalityLayer && !map.hasLayer(municipalityLayer)) {
+                map.addLayer(municipalityLayer);
+            }
+        } else {
+            if (municipalityLayer && map.hasLayer(municipalityLayer)) {
+                map.removeLayer(municipalityLayer);
+            }
+        }
+    }
+
+    // Ensure this event listener is added inside DOMContentLoaded
+    map.on('zoomend', updateLayerVisibility);
 });
+
+
 
     function getColor(rank) {
         return rank <= 20 ? '#005522' :
@@ -150,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
             top5Layer.addLayer(marker);
         });
 
-        map.addLayer(top5Layer);  // ✅ Ensure the layer is added to the map
+        map.addLayer(top5Layer);
     }
 
     // Toggle checkbox behavior
@@ -183,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function () {
             bottom5Layer.addLayer(marker);
         });
 
-        map.addLayer(bottom5Layer);  // ✅ Ensure the layer is added to the map
+        map.addLayer(bottom5Layer);  //
     }
 
     function removeTop5Markers() {
