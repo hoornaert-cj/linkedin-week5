@@ -1,0 +1,12 @@
+{
+"type": "FeatureCollection",
+"name": "top5",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "CSDUID": "2423027", "DGUID": "2021A00052423027", "CSDNAME": "QuebecCity", "CSDTYPE": "V", "LANDAREA": 452.2999, "PRUID": "24", "green_space_sqm": 71545595.18000001, "green_space_hec": 7154.56, "population": 549459, "gs_per_capita": 130.21, "rank": 3 }, "geometry": { "type": "Point", "coordinates": [ -71.223713546691897, 46.808560220753463 ] } },
+{ "type": "Feature", "properties": { "CSDUID": "2465005", "DGUID": "2021A00052465005", "CSDNAME": "Laval", "CSDTYPE": "V", "LANDAREA": 246.1349, "PRUID": "24", "green_space_sqm": 40885363.31, "green_space_hec": 4088.54, "population": 438366, "gs_per_capita": 93.27, "rank": 5 }, "geometry": { "type": "Point", "coordinates": [ -73.725926147109277, 45.604770410094538 ] } },
+{ "type": "Feature", "properties": { "CSDUID": "2481017", "DGUID": "2021A00052481017", "CSDNAME": "Gatineau", "CSDTYPE": "V", "LANDAREA": 341.8414, "PRUID": "24", "green_space_sqm": 46068734.86, "green_space_hec": 4606.87, "population": 291041, "gs_per_capita": 158.29, "rank": 2 }, "geometry": { "type": "Point", "coordinates": [ -75.658564262774092, 45.491043574129932 ] } },
+{ "type": "Feature", "properties": { "CSDUID": "3506008", "DGUID": "2021A00053506008", "CSDNAME": "Ottawa", "CSDTYPE": "CV", "LANDAREA": 2788.1967, "PRUID": "35", "green_space_sqm": 161647350.4, "green_space_hec": 16164.74, "population": 1017449, "gs_per_capita": 158.88, "rank": 1 }, "geometry": { "type": "Point", "coordinates": [ -75.589783550049503, 45.389709116196038 ] } },
+{ "type": "Feature", "properties": { "CSDUID": "3519028", "DGUID": "2021A00053519028", "CSDNAME": "Vaughan", "CSDTYPE": "CY", "LANDAREA": 272.4441, "PRUID": "35", "green_space_sqm": 32772989.6, "green_space_hec": 3277.3, "population": 323103, "gs_per_capita": 101.43, "rank": 4 }, "geometry": { "type": "Point", "coordinates": [ -79.564795597735355, 43.836652463238003 ] } }
+]
+}

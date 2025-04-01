@@ -116,7 +116,7 @@ a:hover {
          1px  1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.neighbourhood-tooltip {
+municipality-tooltip {
     background: linear-gradient(to bottom right, #88C996, #60A875, #3C7E55, #257A3A);
     border: 0.5px solid #257A3A;
     color: #fff;

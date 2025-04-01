@@ -26,29 +26,30 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Fetch neighbourhood GeoJSON and add it to the map
-    fetch('data/to_neighbourhood_tree_canopy.geojson')
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
+    fetch('data/muncipalities_pt.geojson')
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
 
-            if (data && data.type === 'FeatureCollection') {
-                const sorted = data.features.sort((a, b) => a.properties.rank - b.properties.rank);
+        if (data && data.type === 'FeatureCollection') {
+            const sorted = data.features.sort((a, b) => a.properties.rank - b.properties.rank);
 
-                top5 = sorted.slice(0, 5);
-                bottom5 = sorted.slice(-5);
+            top5 = sorted.slice(0, 5);
+            bottom5 = sorted.slice(-5);
 
-                geoJsonLayer = L.geoJSON(data, {
-                    style: function (feature) {
-                        return {
-                            fillColor: getColor(feature.properties.rank),
-                            color: 'white',
-                            weight: 1.5,
-                            opacity: 1,
-                            fillOpacity: 0.9
-                        };
+            geoJsonLayer = L.geoJSON(data, {
+                pointToLayer: function (feature, latlng) {
+                    return L.circleMarker(latlng, {
+                        radius: 8, // Adjust size as needed
+                        fillColor: getColor(feature.properties.rank),
+                        color: 'white',
+                        weight: 1.5,
+                        opacity: 1,
+                        fillOpacity: 0.9
+                    });
                     },
                     onEachFeature: function (feature, layer) {
-                        layer.bindTooltip(feature.properties.AREA_NAME + ' (Rank: ' + feature.properties.rank + ')', {
+                        layer.bindTooltip(feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ')', {
                             permanent: false,
                             direction: "top",
                             className: "neighbourhood-tooltip"
@@ -167,8 +168,8 @@ document.addEventListener("DOMContentLoaded", function () {
             let rank = feature.properties.rank;
             let bottomRank = 159 - rank;
 
-            let centroid = turf.centroid(feature); // Get centroid
-            let coords = centroid.geometry.coordinates; // Extract coordinates
+            let centroid = turf.centroid(feature);
+            let coords = centroid.geometry.coordinates;
 
             let icon = L.icon({
                 iconUrl: `images/bottom5-rank${feature.properties.rank}.svg`,
