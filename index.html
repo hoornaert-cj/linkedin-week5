@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Toronto's Top 5 Greenest Neighbourhoods</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/map.css" />
+
+</head>
+<body>
+    <div id="loading-overlay">
+        <div id="loading-message">Loading...</div>
+    </div>
+    <div class ="main-content">
+        <h1>Canada's 20 Biggest Municipalities: Green Space Per Capita</h1>
+        <section class="introduction">
+            <p>Zoom in to view and click on any municipality. Use the checkbox to display green "Top 5" icons, or red "Bottom 5" icons.</p>
+        </section>
+        <section class="checkbox-section">
+            <div class="top-checkbox">
+                <input type="checkbox" id="top5" name="top5" value="Top 5"> View the Top 5 Municipalities
+            </div>
+            <div class="bottom-checkbox">
+                <input type="checkbox" id="bottom5" name="bottom5" value="Bottom 5"> View the Bottom 5 Municipalities
+            </div>
+        </section>
+        <div id="map" class="map-container"></div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2024: Chris Hoornaert -
+            <a href="https://www.chrishoornaert.com">www.chrishoornaert.com</a> -
+            <a href="mailto:dev@chrishoornaert.com">dev@chrishoornaert.com</a>
+        </p>
+    </footer>
+
+    <!-- <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+     <script src="https://d3js.org/d3.v6.min.js"></script>
+     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="js/map.js"></script>
+</body>
+</html>
