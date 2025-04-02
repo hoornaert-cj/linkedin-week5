@@ -1,5 +1,6 @@
 var map;
 var geoJsonLayer;
+let municMarkers = {};
 
 document.addEventListener("DOMContentLoaded", function () {
     if (!window.map) {
@@ -39,15 +40,17 @@ document.addEventListener("DOMContentLoaded", function () {
             }).addTo(map);
         });
 
+
     // Fetch and add municipalities point layer (set to the pointPane)
     fetch('data/muncipalities_pt.geojson')
         .then(response => response.json())
         .then(data => {
+            populateDropdown(data);
             if (data && data.type === 'FeatureCollection') {
                 geoJsonLayer = L.geoJSON(data, {
                     pane: 'pointPane', // Assign to point pane
                     pointToLayer: function (feature, latlng) {
-                        return L.circleMarker(latlng, {
+                        let marker = L.circleMarker(latlng, {
                             radius: 8,
                             fillColor: getColor(feature.properties.rank),
                             color: 'white',
@@ -55,6 +58,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             opacity: 1,
                             fillOpacity: 0.9
                         });
+
+                        // Store marker reference in global object
+                        municMarkers[feature.properties.CSDNAME] = marker;
+
+                        return marker;
                     },
                     onEachFeature: function (feature, layer) {
                         layer.bindTooltip(feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ')', {
@@ -71,6 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         layer.bindPopup(popupContent);
                     }
                 }).addTo(map);
+
 
                 // Add event listeners for checkboxes inside DOMContentLoaded listener
                 document.getElementById("top5").addEventListener("change", function() {
@@ -126,6 +135,43 @@ document.addEventListener("DOMContentLoaded", function () {
                rank <= 120 ? '#3AC078' :
                rank <= 140 ? '#44e08cff' :
                              '#4dffa0ff';
+    }
+
+    function populateDropdown (municData) {
+        const dropdown=document.getElementById('municipality-dropdown');
+
+        municData.features.sort((a,b) =>
+        a.properties.CSDNAME.localeCompare(b.properties.CSDNAME)
+    );
+
+    municData.features.forEach((CSDNAME, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.text = CSDNAME.properties.CSDNAME
+        dropdown.add(option)
+    });
+
+    dropdown.addEventListener('change', function()  {
+        const selectedIndex = dropdown.value;
+        if(selectedIndex!=="") {
+            const selectedMunic = municData.features[selectedIndex];
+            zoomToMunic(selectedMunic);
+        }
+    });
+    }
+
+    function zoomToMunic(munic) {
+        const municName = munic.properties.CSDNAME;
+
+        let marker = municMarkers[municName];
+
+        if(marker) {
+            map.setView(marker.getLatLng(), 10);
+
+            setTimeout(() => marker.openPopup(), 600);
+        }else {
+            console.error("Municipality marker not found: ", municName)
+        }
     }
 
     let top5Layer = L.layerGroup();
