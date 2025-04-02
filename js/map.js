@@ -160,19 +160,21 @@ document.addEventListener("DOMContentLoaded", function () {
     });
     }
 
-    function zoomToMunic(munic) {
-        const municName = munic.properties.CSDNAME;
-
-        let marker = municMarkers[municName];
-
-        if(marker) {
-            map.setView(marker.getLatLng(), 10);
-
-            setTimeout(() => marker.openPopup(), 600);
-        }else {
-            console.error("Municipality marker not found: ", municName)
+    function zoomToMunic(selectedMunic) {
+        if (!municipalityLayer) {
+            console.error("Municipality layer not loaded yet.");
+            return;
         }
+
+        municipalityLayer.eachLayer(function (layer) {
+            if (layer.feature.properties.CSDNAME === selectedMunic) {
+                map.fitBounds(layer.getBounds());
+                return;
+            }
+        });
     }
+
+
 
     let top5Layer = L.layerGroup();
     let bottom5Layer = L.layerGroup();
