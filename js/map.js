@@ -1,6 +1,9 @@
 var map;
 var geoJsonLayer;
+let top5 = [];
+let bottom5 = [];
 let municMarkers = {};
+let municipalityLayer;
 
 document.addEventListener("DOMContentLoaded", function () {
     if (!window.map) {
@@ -21,7 +24,6 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Fetch and add municipality polygons (set to the polygonPane)
-    let municipalityLayer;
 
     fetch('data/muncipalities_poly.geojson')
         .then(response => response.json())
@@ -167,12 +169,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         municipalityLayer.eachLayer(function (layer) {
-            if (layer.feature.properties.CSDNAME === selectedMunic) {
+            if (layer.feature.properties.CSDNAME === selectedMunic.properties.CSDNAME) {
                 map.fitBounds(layer.getBounds());
-                return;
             }
         });
     }
+
 
 
 
@@ -181,6 +183,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function addTop5Markers() {
         top5Layer.clearLayers();
+        if (!Array.isArray(top5)) {
+            console.error("top5 is not an array", top5);
+            return;
+        }
         top5.forEach(feature => {
             let centroid = turf.centroid(feature);
             let coords = centroid.geometry.coordinates;
