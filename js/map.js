@@ -23,8 +23,7 @@ document.addEventListener("DOMContentLoaded", function () {
         map.getPane('pointPane').style.zIndex = 400;
     }
 
-    // Fetch and add municipality polygons (set to the polygonPane)
-
+    // Fetch and add municipality polygons
     fetch('data/muncipalities_poly.geojson')
         .then(response => response.json())
         .then(data => {
@@ -38,19 +37,31 @@ document.addEventListener("DOMContentLoaded", function () {
                         opacity: 1,
                         fillOpacity: 0.5
                     };
+                },
+                onEachFeature: function (feature, layer) {
+                    if (map.getZoom() >= 11) {
+                        bindTooltipAndPopup(feature, layer);
+                    }
                 }
             }).addTo(map);
+
+            updateLayerVisibility();
         });
 
-
-    // Fetch and add municipalities point layer (set to the pointPane)
+    // Fetch and add point layer
     fetch('data/muncipalities_pt.geojson')
         .then(response => response.json())
         .then(data => {
             populateDropdown(data);
+
             if (data && data.type === 'FeatureCollection') {
+                // Get top 5 and bottom 5
+                let sorted = [...data.features].sort((a, b) => a.properties.rank - b.properties.rank);
+                top5 = sorted.slice(0, 5);
+                bottom5 = sorted.slice(-5);
+
                 geoJsonLayer = L.geoJSON(data, {
-                    pane: 'pointPane', // Assign to point pane
+                    pane: 'pointPane',
                     pointToLayer: function (feature, latlng) {
                         let marker = L.circleMarker(latlng, {
                             radius: 8,
@@ -61,9 +72,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             fillOpacity: 0.9
                         });
 
-                        // Store marker reference in global object
                         municMarkers[feature.properties.CSDNAME] = marker;
-
                         return marker;
                     },
                     onEachFeature: function (feature, layer) {
@@ -73,194 +82,170 @@ document.addEventListener("DOMContentLoaded", function () {
                             className: "municipality-tooltip"
                         });
 
-                        let popupContent =
-                        `<img src="images/maple-leaf.svg" alt="Maple Leaf" style="display: block; margin: 0 auto; width: 1.5rem; height: 1.5rem;">
-                        <strong>${feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ' out of 20)'}</strong><br>
-                        Green Space: ${feature.properties["gs_per_capita"]} m²/person`;
+                        // let popupContent =
+                        //     `<img src="images/maple-leaf.svg" alt="Maple Leaf" style="display: block; margin: 0 auto; width: 1.5rem; height: 1.5rem;">
+                        //      <strong>${feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ' out of 20)'}</strong><br>
+                        //      Green Space: ${feature.properties["gs_per_capita"]} m²/person`;
 
-                        layer.bindPopup(popupContent);
-                    }
+                        // layer.bindPopup(popupContent);
+                    },
+                    onEachFeature: bindTooltipAndPopup
                 }).addTo(map);
 
-
-                // Add event listeners for checkboxes inside DOMContentLoaded listener
-                document.getElementById("top5").addEventListener("change", function() {
-                    if (this.checked) {
-                        addTop5Markers();
-                    } else {
-                        removeTop5Markers();
-                    }
-                });
-
-                document.getElementById("bottom5").addEventListener("change", function() {
-                    if (this.checked) {
-                        addBottom5Markers();
-                    } else {
-                        removeBottom5Markers();
-                    }
-                });
-
                 map.fitBounds(geoJsonLayer.getBounds());
+                updateLayerVisibility();
             } else {
                 console.error('Invalid GeoJSON data');
             }
         })
         .catch(error => console.error('Error loading GeoJSON', error));
 
-
-    // Function to toggle layer based on zoom
     function updateLayerVisibility() {
         const zoomLevel = map.getZoom();
-        if (zoomLevel >= 8) {
+        if (zoomLevel >= 11) {
             if (municipalityLayer && !map.hasLayer(municipalityLayer)) {
                 map.addLayer(municipalityLayer);
             }
+            if (geoJsonLayer && map.hasLayer(geoJsonLayer)) {
+                map.removeLayer(geoJsonLayer);
+            }
         } else {
+            if (geoJsonLayer && !map.hasLayer(geoJsonLayer)) {
+                map.addLayer(geoJsonLayer);
+            }
             if (municipalityLayer && map.hasLayer(municipalityLayer)) {
                 map.removeLayer(municipalityLayer);
             }
         }
     }
 
-    // Ensure this event listener is added inside DOMContentLoaded
     map.on('zoomend', updateLayerVisibility);
 });
 
+function getColor(rank) {
+    return rank <= 20 ? '#005522' :
+           rank <= 40 ? '#0B6838' :
+           rank <= 60 ? '#178B4B' :
+           rank <= 80 ? '#219D57' :
+           rank <= 100 ? '#2DAF64' :
+           rank <= 120 ? '#3AC078' :
+           rank <= 140 ? '#44e08cff' :
+                         '#4dffa0ff';
+}
 
-
-    function getColor(rank) {
-        return rank <= 20 ? '#005522' :
-               rank <= 40 ? '#0B6838' :
-               rank <= 60 ? '#178B4B' :
-               rank <= 80 ? '#219D57' :
-               rank <= 100 ? '#2DAF64' :
-               rank <= 120 ? '#3AC078' :
-               rank <= 140 ? '#44e08cff' :
-                             '#4dffa0ff';
-    }
-
-    function populateDropdown (municData) {
-        const dropdown=document.getElementById('municipality-dropdown');
-
-        municData.features.sort((a,b) =>
-        a.properties.CSDNAME.localeCompare(b.properties.CSDNAME)
-    );
-
+function populateDropdown(municData) {
+    const dropdown = document.getElementById('municipality-dropdown');
+    municData.features.sort((a, b) => a.properties.CSDNAME.localeCompare(b.properties.CSDNAME));
     municData.features.forEach((CSDNAME, index) => {
         const option = document.createElement('option');
         option.value = index;
-        option.text = CSDNAME.properties.CSDNAME
-        dropdown.add(option)
+        option.text = CSDNAME.properties.CSDNAME;
+        dropdown.add(option);
     });
 
-    dropdown.addEventListener('change', function()  {
+    dropdown.addEventListener('change', function () {
         const selectedIndex = dropdown.value;
-        if(selectedIndex!=="") {
+        if (selectedIndex !== "") {
             const selectedMunic = municData.features[selectedIndex];
             zoomToMunic(selectedMunic);
         }
     });
+}
+
+function zoomToMunic(selectedMunic) {
+    if (!municipalityLayer) {
+        console.error("Municipality layer not loaded yet.");
+        return;
     }
 
-    function zoomToMunic(selectedMunic) {
-        if (!municipalityLayer) {
-            console.error("Municipality layer not loaded yet.");
-            return;
-        }
-
-        municipalityLayer.eachLayer(function (layer) {
-            if (layer.feature.properties.CSDNAME === selectedMunic.properties.CSDNAME) {
-                map.fitBounds(layer.getBounds());
-            }
-        });
-    }
-
-
-
-
-    let top5Layer = L.layerGroup();
-    let bottom5Layer = L.layerGroup();
-
-    function addTop5Markers() {
-        top5Layer.clearLayers();
-        if (!Array.isArray(top5)) {
-            console.error("top5 is not an array", top5);
-            return;
-        }
-        top5.forEach(feature => {
-            let centroid = turf.centroid(feature);
-            let coords = centroid.geometry.coordinates;
-
-            let icon = L.icon({
-                iconUrl: `images/top5-rank${feature.properties.rank}.svg`,
-                iconSize: [36, 36],
-                iconAnchor: [16, 32],
-                popupAnchor: [0, 0]
-            });
-
-
-            let marker = L.marker([coords[1], coords[0]], { icon: icon });
-            top5Layer.addLayer(marker);
-        });
-
-        map.addLayer(top5Layer);
-    }
-
-    // Toggle checkbox behavior
-    document.getElementById("top5").addEventListener("change", function() {
-        if (this.checked) {
-            addTop5Markers();
-        } else {
-            map.removeLayer(top5Layer);
+    municipalityLayer.eachLayer(function (layer) {
+        if (layer.feature.properties.CSDNAME === selectedMunic.properties.CSDNAME) {
+            map.fitBounds(layer.getBounds());
         }
     });
+}
 
-    function addBottom5Markers() {
-        bottom5Layer.clearLayers();
-        bottom5.forEach(feature => {
-            let rank = feature.properties.rank;
-            let bottomRank = 159 - rank;
+// Top/Bottom Marker Layers
+let top5Layer = L.layerGroup();
+let bottom5Layer = L.layerGroup();
 
-            let centroid = turf.centroid(feature);
-            let coords = centroid.geometry.coordinates;
+function addTop5Markers() {
+    top5Layer.clearLayers();
+    top5.forEach(feature => {
+        let centroid = turf.centroid(feature);
+        let coords = centroid.geometry.coordinates;
 
-            let icon = L.icon({
-                iconUrl: `images/bottom5-rank${feature.properties.rank}.svg`,
-                iconSize: [36, 36],
-                iconAnchor: [16, 32],
-                popupAnchor: [0, 0]
-            });
-
-
-            let marker = L.marker([coords[1], coords[0]], { icon: icon });
-            bottom5Layer.addLayer(marker);
+        let icon = L.icon({
+            iconUrl: `images/top5-rank${feature.properties.rank}.svg`,
+            iconSize: [36, 36],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, 0]
         });
 
-        map.addLayer(bottom5Layer);  //
-    }
+        let marker = L.marker([coords[1], coords[0]], { icon: icon });
+        top5Layer.addLayer(marker);
+    });
+    map.addLayer(top5Layer);
+}
 
-    function removeTop5Markers() {
-        map.removeLayer(top5Layer);
-    }
+function removeTop5Markers() {
+    map.removeLayer(top5Layer);
+}
 
-    function removeBottom5Markers() {
-        map.removeLayer(bottom5Layer);
-    }
+function addBottom5Markers() {
+    bottom5Layer.clearLayers();
+    bottom5.forEach(feature => {
+        let centroid = turf.centroid(feature);
+        let coords = centroid.geometry.coordinates;
 
-    document.getElementById("top5").addEventListener("change", function() {
-        if (this.checked) {
-            addTop5Markers();
-        } else {
-            removeTop5Markers();
-        }
+        let icon = L.icon({
+            iconUrl: `images/bottom5-rank${feature.properties.rank}.svg`,
+            iconSize: [36, 36],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, 0]
+        });
+
+        let marker = L.marker([coords[1], coords[0]], { icon: icon });
+        bottom5Layer.addLayer(marker);
+    });
+    map.addLayer(bottom5Layer);
+}
+
+function removeBottom5Markers() {
+    map.removeLayer(bottom5Layer);
+}
+
+function bindTooltipAndPopup(feature, layer) {
+    const tooltipContent = feature.properties.CSDNAME + ' (Rank: ' + feature.properties.rank + ')';
+    const popupContent = `
+        <img src="images/maple-leaf.svg" alt="Maple Leaf" style="display: block; margin: 0 auto; width: 1.5rem; height: 1.5rem;">
+        <strong>${tooltipContent} out of 20</strong><br>
+        Green Space: ${feature.properties["gs_per_capita"]} m²/person`;
+
+    layer.bindTooltip(tooltipContent, {
+        permanent: false,
+        direction: "top",
+        className: "municipality-tooltip"
     });
 
-    document.getElementById("bottom5").addEventListener("change", function() {
-        if (this.checked) {
-            addBottom5Markers();
-        } else {
-            removeBottom5Markers();
-        }
-    });
+    layer.bindPopup(popupContent);
+}
 
+
+// Event listeners for checkboxes
+document.getElementById("top5").addEventListener("change", function () {
+    if (this.checked) {
+        addTop5Markers();
+    } else {
+        removeTop5Markers();
+    }
+});
+
+document.getElementById("bottom5").addEventListener("change", function () {
+    if (this.checked) {
+        addBottom5Markers();
+    } else {
+        removeBottom5Markers();
+    }
+});
 
